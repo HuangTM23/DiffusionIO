@@ -1,0 +1,22 @@
+name: DiffM
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch>=2.0.0
+  - torchvision>=0.15.0
+  - torchaudio>=2.0.0
+  - pytorch-cuda=11.8
+  - numpy>=1.24.0
+  - pandas>=2.0.0
+  - matplotlib>=3.7.0
+  - scipy>=1.10.0
+  - scikit-learn>=1.2.0
+  - tqdm>=4.65.0
+  - tensorboard>=2.13.0
+  - pip
+  - pip:
+    - wandb>=0.15.0
+    - tensorboardX>=2.6.2
