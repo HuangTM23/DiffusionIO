@@ -1,0 +1,38 @@
+name: baseline
+description: Baseline experiment configuration
+seed: 42
+
+training:
+  batch_size: 32
+  num_epochs: 100
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  gradient_clip: 1.0
+  device: cuda
+  num_workers: 4
+  pin_memory: true
+  checkpoint_dir: experiments/checkpoints
+  log_interval: 10
+  save_interval: 5
+  use_wandb: true
+  wandb_project: DiffusionIO
+  wandb_entity: null
+
+data:
+  data_root: /home/dawn/datas/IO_Datasets/FRDR
+  ronin_lists_root: external/ronin/lists
+  window_size: 200
+  stride: 100
+  normalize: true
+  train_split: train
+  val_split: val
+  test_split: test
+
+model:
+  imu_channels: 6
+  velocity_channels: 2
+  ronin_model_path: null
+  diffusion_timesteps: 1000
+  noise_schedule: linear
+  unet_channels: [64, 128, 256, 512]
+  attention_resolutions: [4, 8]
