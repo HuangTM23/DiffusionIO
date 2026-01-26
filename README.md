@@ -18,7 +18,23 @@
 
 ## 环境设置
 
-### 1. 创建Conda环境
+### 1. 获取代码 (含子模组)
+
+本仓库包含 RoNIN 源代码作为子模组 (submodule)。在克隆或迁移到新服务器时，请务必初始化子模组：
+
+**方式 A：克隆时自动初始化**
+```bash
+git clone --recursive https://github.com/HuangTM23/DiffusionIO.git
+cd DiffusionIO
+git checkout feat/scheme1-cascade
+```
+
+**方式 B：对现有仓库进行初始化**
+```bash
+git submodule update --init --recursive
+```
+
+### 2. 创建Conda环境
 
 ```bash
 conda env create -f environment.yml
