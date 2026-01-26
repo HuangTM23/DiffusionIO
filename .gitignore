@@ -38,11 +38,13 @@ ENV/
 # Data
 data/raw/
 data/processed/
+data/datasets/
 *.zip
 *.tar.gz
 
 # Experiments
 experiments/runs/
+experiments/cache/
 wandb/
 
 # Model checkpoints
@@ -52,4 +54,7 @@ checkpoints/
 
 # Logs
 logs/
-*.logexternal/ronin/
+*.log
+
+# External
+external/ronin/

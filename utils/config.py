@@ -31,6 +31,10 @@ class TrainingConfig:
     wandb_project: str = "DiffusionIO"
     wandb_entity: Optional[str] = None
 
+    # 运行输出
+    output_dir: str = "experiments/runs"
+    max_steps: Optional[int] = None
+
 
 @dataclass
 class DataConfig:
@@ -41,8 +45,22 @@ class DataConfig:
 
     # 数据预处理
     window_size: int = 200
+    # NOTE: historical name kept for backward compatibility.
     stride: int = 100
+    # Sampling step size for dataset indexing.
+    step_size: int = 10
+    # RoNIN velocity interval (w): v[t] = (pos[t+w]-pos[t])/(ts[t+w]-ts[t]).
+    # For ~1s average at 200Hz, set to 200.
+    velocity_interval: int = 1
     normalize: bool = True
+
+    # Dataset type: "strided" returns targ (B,2); "seq2seq" returns targ (B,2,T).
+    dataset_type: str = "strided"
+
+    # Optional explicit list files (preferred).
+    train_list: Optional[str] = None
+    val_list: Optional[str] = None
+    test_list: Optional[str] = None
 
     # 数据集划分
     train_split: str = "train"
@@ -68,6 +86,15 @@ class ModelConfig:
     # UNet配置
     unet_channels: list = field(default_factory=lambda: [64, 128, 256, 512])
     attention_resolutions: list = field(default_factory=lambda: [4, 8])
+
+    # Cascade condition settings
+    use_ronin_condition: bool = True
+    condition_channels: int = 8
+
+    # UNet1D core hyperparams
+    unet_base_channels: int = 64
+    unet_channel_mults: list = field(default_factory=lambda: [1, 2, 4, 8])
+    unet_time_emb_dim: int = 128
 
 
 @dataclass

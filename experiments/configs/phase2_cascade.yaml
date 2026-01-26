@@ -1,0 +1,69 @@
+name: phase2_cascade_vavg
+description: "Scheme1 cascade: RoNIN prior + diffusion; target is v_avg sequence"
+seed: 42
+
+training:
+  batch_size: 32
+  num_epochs: 50
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  gradient_clip: 1.0
+  device: cuda
+  num_workers: 4
+  pin_memory: true
+
+  checkpoint_dir: experiments/checkpoints
+  log_interval: 10
+  save_interval: 1
+  use_wandb: false
+  wandb_project: DiffusionIO
+  wandb_entity: null
+
+  output_dir: experiments/runs
+  max_steps: null
+
+data:
+  # Dataset root should contain compiled sequences (each with info.json + data.hdf5)
+  data_root: data/datasets/FRDR/extracted
+  ronin_lists_root: external/ronin/lists
+
+  # We use SequenceToSequenceDataset to get targ (T,2) per window.
+  dataset_type: seq2seq
+  window_size: 200
+  step_size: 10
+
+  # v_avg interval (w). For ~1s average at 200Hz, set 200.
+  velocity_interval: 200
+
+  # Optional list files; if set, they override train_split/val_split/test_split.
+  # Run `python scripts/train_ronin_resnet.py prepare-lists` to generate *_available.txt,
+  # then point these paths to the generated files.
+  train_list: data/datasets/FRDR/list_train_available.txt
+  val_list: data/datasets/FRDR/list_val_available.txt
+  test_list: data/datasets/FRDR/list_test_seen_available.txt
+
+  normalize: true
+  stride: 100
+  train_split: train
+  val_split: val
+  test_split: test
+
+model:
+  imu_channels: 6
+  velocity_channels: 2
+
+  # Optional RoNIN checkpoint; if null, uses random init (not recommended for cascade).
+  ronin_model_path: null
+
+  diffusion_timesteps: 1000
+  noise_schedule: linear
+
+  # Condition is imu(6) + ronin_vel(2)
+  use_ronin_condition: true
+  condition_channels: 8
+
+  unet_base_channels: 64
+  unet_channel_mults: [1, 2, 4, 8]
+  unet_time_emb_dim: 128
+  unet_channels: [64, 128, 256, 512]
+  attention_resolutions: [4, 8]

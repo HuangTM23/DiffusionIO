@@ -1,0 +1,10 @@
+{
+  "venvPath": ".",
+  "reportMissingImports": true,
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["external/ronin/source"]
+    }
+  ]
+}
