@@ -1,6 +1,6 @@
-"""Train Scheme 1 (RoNIN prior + conditional diffusion).
+"""Train Scheme 2 (End-to-End Diffusion).
 
-Target: v_avg sequence computed with RoNIN-style interval=w.
+Target: v_avg sequence directly from IMU.
 """
 
 from __future__ import annotations
@@ -14,8 +14,7 @@ from torch.utils.data import DataLoader
 
 from data.loaders.ronin_loader import get_ronin_dataset_from_list
 from models.diffusion import ConditionalDiffusionModel, UNet1D
-from models.hybrid import CascadeRoninDiffusion
-from models.ronin import get_ronin_resnet
+from models.diffusion.end2end import EndToEndDiffusion
 from utils.config import ExperimentConfig, load_config_from_yaml
 from utils.common import set_seed
 from utils.logger import WandBLogger
@@ -25,18 +24,6 @@ def _resolve_device(device_str: str) -> torch.device:
     if device_str.startswith("cuda") and torch.cuda.is_available():
         return torch.device(device_str)
     return torch.device("cpu")
-
-
-def _load_model_state(model: torch.nn.Module, ckpt_path: str) -> None:
-    ckpt = torch.load(ckpt_path, map_location="cpu")
-    if isinstance(ckpt, dict):
-        if "model_state_dict" in ckpt:
-            model.load_state_dict(ckpt["model_state_dict"], strict=True)
-            return
-        if "state_dict" in ckpt:
-            model.load_state_dict(ckpt["state_dict"], strict=True)
-            return
-    model.load_state_dict(ckpt, strict=True)
 
 
 def build_dataloaders(
@@ -106,16 +93,7 @@ def build_dataloaders(
     return train_loader, val_loader, test_loader
 
 
-def build_model(cfg: ExperimentConfig, device: torch.device) -> CascadeRoninDiffusion:
-    ronin = get_ronin_resnet(
-        arch="resnet18",
-        num_inputs=cfg.model.imu_channels,
-        num_outputs=cfg.model.velocity_channels,
-        window_size=cfg.data.window_size,
-    )
-    if cfg.model.ronin_model_path:
-        _load_model_state(ronin, cfg.model.ronin_model_path)
-
+def build_model(cfg: ExperimentConfig, device: torch.device) -> EndToEndDiffusion:
     unet = UNet1D(
         in_channels=cfg.model.velocity_channels,
         out_channels=cfg.model.velocity_channels,
@@ -131,14 +109,14 @@ def build_model(cfg: ExperimentConfig, device: torch.device) -> CascadeRoninDiff
         beta_schedule=cfg.model.noise_schedule,
     )
 
-    model = CascadeRoninDiffusion(ronin=ronin, diffusion=diffusion, freeze_ronin=True)
+    model = EndToEndDiffusion(diffusion=diffusion)
     model.to(device)
     return model
 
 
 @torch.no_grad()
 def _eval_epoch(
-    model: CascadeRoninDiffusion, loader: DataLoader, device: torch.device
+    model: EndToEndDiffusion, loader: DataLoader, device: torch.device
 ) -> float:
     model.eval()
     losses = []
@@ -157,11 +135,8 @@ def train(config_path: str) -> Path:
     set_seed(cfg.seed)
 
     device = _resolve_device(cfg.training.device)
-    if device.type == "cuda":
-        print(f"Using device: {device} ({torch.cuda.get_device_name(device)})")
-    else:
-        print(f"Using device: {device}")
-    
+    print(f"Using device: {device}")
+
     wandb_logger = WandBLogger(
         project=cfg.training.wandb_project,
         entity=cfg.training.wandb_entity,

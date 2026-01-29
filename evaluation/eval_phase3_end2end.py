@@ -1,4 +1,4 @@
-"""Evaluate Scheme 1 (RoNIN prior + diffusion) on v_avg target."""
+"""Evaluate Scheme 2 (End-to-End Diffusion) on v_avg target."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import numpy as np
 import torch
 import json
 
-from training.train_phase2_cascade import (
+from training.train_phase3_end2end import (
     build_dataloaders,
     build_model,
     _resolve_device,
@@ -38,10 +38,7 @@ def _rmse_mae(pred: np.ndarray, gt: np.ndarray) -> Tuple[float, float]:
 def evaluate(config_path: str, ckpt_path: str, split: str = "val") -> Path:
     cfg = load_config_from_yaml(config_path)
     device = _resolve_device(cfg.training.device)
-    if device.type == "cuda":
-        print(f"Using device: {device} ({torch.cuda.get_device_name(device)})")
-    else:
-        print(f"Using device: {device}")
+    print(f"Using device: {device}")
 
     # Initialize WandB for evaluation
     wandb_logger = WandBLogger(

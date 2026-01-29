@@ -1,5 +1,5 @@
-name: phase2_cascade_vavg
-description: "Scheme1 cascade: RoNIN prior + diffusion; target is v_avg sequence"
+name: phase3_end2end
+description: "Scheme 2: End-to-End Diffusion; condition is raw IMU"
 seed: 42
 
 training:
@@ -36,8 +36,6 @@ data:
   velocity_interval: 200
 
   # Optional list files; if set, they override train_split/val_split/test_split.
-  # Run `python scripts/train_ronin_resnet.py prepare-lists` to generate *_available.txt,
-  # then point these paths to the generated files.
   train_list: data/datasets/FRDR/list_train_available.txt
   val_list: data/datasets/FRDR/list_val_available.txt
   test_list: data/datasets/FRDR/list_test_seen_available.txt
@@ -52,15 +50,12 @@ model:
   imu_channels: 6
   velocity_channels: 2
 
-  # Optional RoNIN checkpoint; if null, uses random init (not recommended for cascade).
-  ronin_model_path: null
-
   diffusion_timesteps: 1000
   noise_schedule: linear
 
-  # Condition is imu(6) + ronin_vel(2)
-  use_ronin_condition: true
-  condition_channels: 8
+  # Condition is imu(6) only
+  use_ronin_condition: false
+  condition_channels: 6
 
   unet_base_channels: 64
   unet_channel_mults: [1, 2, 4, 8]

@@ -1,123 +1,106 @@
-# DiffusionIO - 基于扩散模型的IMU速度估计
+# DiffusionIO: IMU-based Velocity Estimation with Diffusion Models
 
-## 项目概述
+本项目探索使用扩散模型（Diffusion Models）基于 6 轴 IMU 数据进行 2D 速度估计，并与 RoNIN 基准模型进行对比。
 
-本项目基于6轴IMU数据，使用扩散模型进行2维速度估计（vx, vy），并与RoNIN基准模型进行对比研究。
+## 🚀 技术方案
 
-## 技术方案
+| 方案 | 名称 | 架构 | 特点 |
+| :--- | :--- | :--- | :--- |
+| **Baseline** | **RoNIN** | ResNet18 | 传统的监督学习，作为先验和基准。 |
+| **Scheme 1** | **Cascade** | RoNIN + Diffusion | **级联架构**。RoNIN 提供粗略速度先验，扩散模型进行细化生成。 |
+| **Scheme 2** | **End-to-End** | Pure Diffusion | **端到端架构**。直接以 IMU 数据为条件，由扩散模型独立学习速度映射。 |
 
-### 方案一：级联方法（RoNIN + 扩散模型）
-1. 使用RoNIN ResNet模型作为预处理器，得到初始速度估计
-2. 扩散模型以初始速度估计为条件进行去噪优化
-3. 输出优化后的2维速度
+## 🛠️ 环境与数据
 
-### 方案二：端到端方法（直接扩散模型）
-1. 直接以IMU数据为条件
-2. 扩散模型直接学习从IMU数据到速度的映射
-3. 输出直接估计的2维速度
+### 1. 环境配置
 
-## 环境设置
-
-### 1. 获取代码 (含子模组)
-
-本仓库包含 RoNIN 源代码作为子模组 (submodule)。在克隆或迁移到新服务器时，请务必初始化子模组：
-
-**方式 A：克隆时自动初始化**
 ```bash
+# 1. 克隆仓库 (包含子模块)
 git clone --recursive https://github.com/HuangTM23/DiffusionIO.git
 cd DiffusionIO
-git checkout feat/scheme1-cascade
-```
 
-**方式 B：对现有仓库进行初始化**
-```bash
-git submodule update --init --recursive
-```
-
-### 2. 创建Conda环境
-
-```bash
+# 2. 创建环境
 conda env create -f environment.yml
 conda activate DiffM
 ```
 
-### 2. 安装依赖（可选）
+### 2. 数据准备
 
-```bash
-pip install -r requirements.txt
-```
-
-## 项目结构
-
-```
-DiffusionIO/
-├── data/                    # 数据相关
-├── models/                  # 模型定义
-├── training/                # 训练相关
-├── evaluation/              # 评估相关
-├── experiments/             # 实验配置
-├── scripts/                 # 实用脚本
-├── utils/                   # 工具函数
-└── docs/                    # 文档
-```
-
-## 数据集准备
-
-本项目使用FRDR数据集。数据集应以ZIP包形式放置在 `data/datasets/FRDR/Data/*.zip`。
-
-使用以下命令自动解压并校验数据集：
+将 FRDR 数据集 ZIP 包放置于 `data/datasets/FRDR/Data/`，然后运行：
 
 ```bash
 python scripts/prepare_frdr_extracted.py --delete-zips
 ```
 
-解压后的数据将位于 `data/datasets/FRDR/extracted`。
+## ⚙️ 实验配置 (WandB)
 
-## 使用方法
+本项目使用 **Weights & Biases (WandB)** 跟踪实验。建议在 `experiments/configs/` 下的 YAML 文件中预先配置：
 
-### 1. 训练 RoNIN 基线模型 (Baseline)
+```yaml
+training:
+  use_wandb: true
+  wandb_project: "DiffusionIO"
+  wandb_entity: "your-entity"  # 可选
+```
 
-在进行级联训练前，需要先训练一个RoNIN ResNet模型作为先验。
+## 🏃‍♂️ 训练与评估
+
+### 步骤 0: 训练 RoNIN 基线 (必须)
+
+方案一需要 RoNIN 权重作为先验。
 
 ```bash
-# 自动生成可用序列列表并开始训练
 python scripts/train_ronin_resnet.py train \
   --data-root data/datasets/FRDR/extracted \
   --out-dir experiments/runs/ronin_resnet \
   --epochs 50 \
-  --arch resnet18
+  --wandb-project DiffusionIO
 ```
 
-训练完成后，权重将保存至 `experiments/runs/ronin_resnet/checkpoints/`。
+### 步骤 1: 运行方案一 (Cascade)
 
-### 2. 训练方案一：级联扩散模型 (Scheme 1 Cascade)
+1. 修改 `experiments/configs/phase2_cascade.yaml`，将 `ronin_model_path` 指向步骤 0 得到的权重。
+2. **训练**:
+   ```bash
+   python scripts/train_phase2_cascade.py --config experiments/configs/phase2_cascade.yaml
+   ```
+3. **评估**:
+   ```bash
+   python scripts/eval_phase2_cascade.py \
+     --config experiments/configs/phase2_cascade.yaml \
+     --ckpt experiments/runs/phase2_cascade_vavg/checkpoints/epoch_last.pt \
+     --split val
+   ```
 
-1. 更新配置文件 `experiments/configs/phase2_cascade.yaml`：
-   - 将 `model.ronin_model_path` 指向你训练好的基线权重路径。
-2. 运行训练：
+### 步骤 2: 运行方案二 (End-to-End)
 
-```bash
-python scripts/train_phase2_cascade.py --config experiments/configs/phase2_cascade.yaml
+无需 RoNIN 权重，直接训练。
+
+1. **训练**:
+   ```bash
+   python scripts/train_phase3_end2end.py --config experiments/configs/phase3_end2end.yaml
+   ```
+2. **评估**:
+   ```bash
+   python scripts/eval_phase3_end2end.py \
+     --config experiments/configs/phase3_end2end.yaml \
+     --ckpt experiments/runs/phase3_end2end/checkpoints/epoch_last.pt \
+     --split val
+   ```
+
+## 📂 项目结构
+
 ```
-
-### 3. 评估 (Evaluation)
-
-使用评估脚本计算指标（RMSE/MAE）并生成预测轨迹文件（.npz）：
-
-```bash
-python scripts/eval_phase2_cascade.py \
-  --config experiments/configs/phase2_cascade.yaml \
-  --ckpt experiments/runs/phase2_cascade_vavg/checkpoints/epoch_last.pt \
-  --split val
+DiffusionIO/
+├── data/               # 数据加载与预处理
+├── models/             # 模型定义 (Diffusion, RoNIN, Hybrid)
+├── training/           # 训练循环实现
+├── evaluation/         # 评估脚本
+├── experiments/        # 配置文件 (configs/) 与运行日志 (runs/)
+└── scripts/            # CLI 入口脚本
 ```
-
-评估产物将保存至 `experiments/runs/phase2_cascade_vavg/predictions/`。
 
 ## 参考文献
 
-- RoNIN: https://github.com/Sachini/ronin
-- DDPM: Denoising Diffusion Probabilistic Models
-
-## 许可证
-
-MIT License
+- **RoNIN**: [Sachini/ronin](https://github.com/Sachini/ronin)
+- **DDPM**: Denoising Diffusion Probabilistic Models

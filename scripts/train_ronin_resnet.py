@@ -119,6 +119,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         p.add_argument("--arch", default="resnet18")
         p.add_argument("--cpu", action="store_true")
         p.add_argument("--cache-path", default=None)
+        p.add_argument("--wandb-project", default="DiffusionIO")
+        p.add_argument("--wandb-entity", default=None)
 
     p_train = sub.add_parser("train")
     add_common(p_train)
@@ -179,6 +181,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         common.append("--cpu")
     if ns.cache_path:
         common += ["--cache_path", ns.cache_path]
+    
+    # WandB args
+    common += ["--wandb_project", ns.wandb_project]
+    if ns.wandb_entity:
+        common += ["--wandb_entity", ns.wandb_entity]
 
     if ns.mode == "train":
         args_list = [
@@ -219,7 +226,11 @@ def main(argv: Optional[List[str]] = None) -> int:
             else ns.out_dir
         ),
         "--model_path",
-        ns.model_path,
+        str(
+            (REPO_ROOT / ns.model_path).resolve()
+            if not os.path.isabs(ns.model_path)
+            else ns.model_path
+        ),
     ]
     if ns.fast_test:
         args_list.append("--fast_test")
