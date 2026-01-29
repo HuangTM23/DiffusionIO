@@ -111,11 +111,24 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
-    parser.add_argument("--ckpt", required=True)
-    parser.add_argument("--split", default="val", choices=["train", "val", "test"])
+    parser.add_argument("--ckpt", default=None)
+    parser.add_argument("--split", default=None, choices=["train", "val", "test"])
     args = parser.parse_args(argv)
 
-    out = evaluate(args.config, args.ckpt, split=args.split)
+    # Load config to get defaults
+    cfg = load_config_from_yaml(args.config)
+    
+    ckpt_path = args.ckpt
+    if ckpt_path is None:
+        ckpt_path = cfg.evaluation.ckpt_path
+    if ckpt_path is None:
+        parser.error("ckpt path must be specified via --ckpt or in config file under 'evaluation.ckpt_path'")
+        
+    split = args.split
+    if split is None:
+        split = cfg.evaluation.split
+
+    out = evaluate(args.config, ckpt_path, split=split)
     print(f"predictions: {out}")
     return 0
 

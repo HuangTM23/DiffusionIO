@@ -37,6 +37,13 @@ class TrainingConfig:
 
 
 @dataclass
+class EvaluationConfig:
+    """评估配置"""
+    ckpt_path: Optional[str] = None
+    split: str = "val"  # train, val, test
+
+
+@dataclass
 class DataConfig:
     """数据配置"""
 
@@ -108,6 +115,7 @@ class ExperimentConfig:
     training: TrainingConfig = field(default_factory=TrainingConfig)
     data: DataConfig = field(default_factory=DataConfig)
     model: ModelConfig = field(default_factory=ModelConfig)
+    evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
 
 
 def load_config_from_yaml(yaml_path: str) -> ExperimentConfig:
@@ -122,8 +130,51 @@ def load_config_from_yaml(yaml_path: str) -> ExperimentConfig:
         config_dict["data"] = DataConfig(**config_dict["data"])
     if "model" in config_dict:
         config_dict["model"] = ModelConfig(**config_dict["model"])
+    if "evaluation" in config_dict:
+        config_dict["evaluation"] = EvaluationConfig(**config_dict["evaluation"])
 
-    return ExperimentConfig(**config_dict)
+    cfg = ExperimentConfig(**config_dict)
+    
+    # 尝试加载全局WandB配置
+    apply_global_wandb_config(cfg)
+    
+    return cfg
+
+
+def apply_global_wandb_config(cfg: ExperimentConfig, wandb_yaml_path: str = "experiments/configs/wandb.yaml"):
+    """
+    读取全局WandB配置文件并更新实验配置。
+    同时设置 WANDB_MODE 环境变量。
+    """
+    if not os.path.exists(wandb_yaml_path):
+        return
+
+    try:
+        with open(wandb_yaml_path, "r") as f:
+            wb_cfg = yaml.safe_load(f)
+        
+        if not wb_cfg:
+            return
+
+        # 更新配置对象
+        if "project" in wb_cfg:
+            cfg.training.wandb_project = wb_cfg["project"]
+        if "entity" in wb_cfg:
+            cfg.training.wandb_entity = wb_cfg["entity"]
+        
+        # 设置环境变量
+        if "mode" in wb_cfg:
+            os.environ["WANDB_MODE"] = wb_cfg["mode"]
+            # 如果配置为 disabled，也可以同步关闭 use_wandb 标志，但通常由 mode 控制即可
+            if wb_cfg["mode"] == "disabled":
+                cfg.training.use_wandb = False
+            else:
+                cfg.training.use_wandb = True
+                
+        print(f"Loaded global WandB config from {wandb_yaml_path}: {wb_cfg}")
+
+    except Exception as e:
+        print(f"Warning: Failed to load global WandB config: {e}")
 
 
 def save_config_to_yaml(config: ExperimentConfig, yaml_path: str):
@@ -135,6 +186,7 @@ def save_config_to_yaml(config: ExperimentConfig, yaml_path: str):
         "training": config.training.__dict__,
         "data": config.data.__dict__,
         "model": config.model.__dict__,
+        "evaluation": config.evaluation.__dict__,
     }
 
     os.makedirs(os.path.dirname(yaml_path), exist_ok=True)

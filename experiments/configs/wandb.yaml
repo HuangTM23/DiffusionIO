@@ -1,0 +1,15 @@
+# 全局 WandB 配置文件
+# 该文件将被所有训练和测试脚本自动加载，覆盖实验配置中的默认设置。
+
+# WandB 项目名称
+project: "DiffusionIO"
+
+# 用户名或团队名 (Entity)
+# 如果是个人使用，填用户名；如果是团队，填团队名。
+entity: "huangtianmingw-wuhan-university"
+
+# 运行模式
+# online: 正常联网上传
+# offline: 离线模式 (不上传，保存在本地，之后可用 wandb sync 同步)
+# disabled: 完全禁用 WandB
+mode: "online"

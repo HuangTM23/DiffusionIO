@@ -1,0 +1,33 @@
+# RoNIN ResNet Baseline Configuration
+
+# 通用数据配置
+data:
+  data_root: "data/datasets/FRDR/extracted"
+  lists_out_dir: "data/datasets/FRDR"
+  dataset: "ronin"
+  max_ori_error: 20.0
+  step_size: 10
+  window_size: 200
+  cache_path: null
+
+# 模型配置
+model:
+  arch: "resnet18"
+
+# 训练配置
+training:
+  out_dir: "experiments/runs/ronin_resnet"
+  lr: 0.0001
+  batch_size: 128
+  epochs: 50
+  continue_from: null
+  cpu: false
+
+# 测试配置
+testing:
+  out_dir: "experiments/runs/ronin_resnet_test"
+  # 注意：这里可以是默认的模型路径，或者在命令行覆盖
+  model_path: "experiments/runs/ronin_resnet/checkpoints/checkpoint_latest.pt"
+  split: "test_seen"  # choices: test_seen, test_unseen
+  fast_test: false
+  show_plot: false

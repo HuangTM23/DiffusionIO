@@ -62,3 +62,7 @@ model:
   unet_time_emb_dim: 128
   unet_channels: [64, 128, 256, 512]
   attention_resolutions: [4, 8]
+
+evaluation:
+  ckpt_path: "experiments/runs/phase3_end2end/checkpoints/epoch_last.pt"
+  split: "val"
